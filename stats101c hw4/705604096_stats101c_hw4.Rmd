@@ -1,0 +1,226 @@
+---
+title: "705604096_stats101c_hw4"
+author: "Jade Gregory"
+date: "2023-10-30"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(MASS)
+library(caret)
+```
+
+## Question 1
+```{r}
+kagtrain <- read.csv("TrainSAData2.csv")
+kagtest <- read.csv("TestSAData2NoY.csv")
+head(kagtrain)
+head(kagtest)
+```
+
+a)
+```{r}
+dim(kagtrain)
+dim(kagtest)
+```
+
+The training data set has 28 columns by 70,000 rows. The testing data set has 27 columns by 30,000 rows. 
+
+b)
+There are 21 numerical predictors. They include the variables ID, age, height, weight, waistline, sight_left, sight_right, SBP, DBP, BLDS, tot_chole, HDL_chole, LDL_chole, triglyceride, hemoglobin, urine_protein, serum_creatinine, SGOT_AST, SGOT_ALT, gamma_GTP, and BMI.
+
+c)
+There are 7 categorical variables. They are sex, hear_left, hear_right, BMI.Category, AGE.Category, Smoking.Status, and Alcoholic.Status.
+
+d)
+```{r}
+(sapply(kagtrain, function(x) sum(is.na(x))) / 70000) * 100
+```
+
+```{r}
+((sapply(kagtest, function(x) sum(is.na(x)))) / 30000) * 100
+```
+
+e)
+```{r}
+length(kagtrain$Alcoholic.Status[kagtrain$Alcoholic.Status == "Y"]) 
+length(kagtrain$Alcoholic.Status[kagtrain$Alcoholic.Status == "N"])
+```
+
+Our response variable is Alcoholic.Status that has two values, yes or no, denotes Y or N. Alcoholic.Status is Y 34887 times out of 70000 observations which is 49.84% and it is N 35113 times out of 70000 observations which is 50.16%. Our max error rate based on our training data is 49.84%.
+
+f)
+```{r}
+num_names <- names(kagtrain[sapply(kagtrain, is.numeric)])
+for(variable in num_names){
+  plot <- ggplot(kagtrain, aes_string(variable, color = "Alcoholic.Status")) + geom_density() + ggtitle(variable)
+  print(plot)
+}
+```
+
+The best four numerical predictors are age, height, hemoglobin and BMI. We can infer this information from their density charts.
+
+g)
+```{r}
+cat_names <- names(kagtrain[sapply(kagtrain, is.character)])
+for(variable in cat_names){
+  plot <- ggplot(kagtrain, aes_string(fill = "Alcoholic.Status", y = "Alcoholic.Status", x = variable)) + geom_bar(position = "stack", stat = "identity") + ggtitle(variable)
+  print(plot)
+}
+```
+
+Our best two categorical predictor variables are Smoking.Status and AGE.Category. 
+
+## Question 2
+a)
+```{r}
+head(kagtrain %>% mutate(across(where(is.numeric), ~replace_na(., median(., na.rm = TRUE)))))
+```
+
+```{r}
+kagtrain$sex <- as.factor(kagtrain$sex)
+kagtrain$hear_left <- as.factor(kagtrain$hear_left)
+kagtrain$hear_right <- as.factor(kagtrain$hear_right)
+kagtrain$BMI.Category <- as.factor(kagtrain$BMI.Category)
+kagtrain$AGE.Category <- as.factor(kagtrain$AGE.Category)
+kagtrain$Smoking.Status <- as.factor(kagtrain$Smoking.Status)
+kagtrain$Alcoholic.Status <- as.factor(kagtrain$Alcoholic.Status)
+cleankagtrain <- kagtrain[complete.cases(kagtrain), ]
+cleankagtrain$Alcoholic.Status <- as.factor(cleankagtrain$Alcoholic.Status)
+```
+
+```{r}
+glmkag <- glm(Alcoholic.Status ~ . - ID - Alcoholic.Status, data = cleankagtrain, family = binomial())
+summary(glmkag)
+```
+
+b)
+```{r}
+kagprob <- predict(glmkag, data = cleankagtrain, type = "response")
+kagpredlog <- rep("Y", length(kagprob))
+kagpredlog[kagprob <= 0.5] <- "N"
+table(kagpredlog, cleankagtrain$Alcoholic.Status)
+mean(kagpredlog != cleankagtrain$Alcoholic.Status)
+```
+
+The misclassification rate is 27.26%.
+
+c)
+```{r}
+kptest <- predict(glmkag, data = cleankagtrain, newdata = kagtest, type = "response")
+kgtestpl <- rep("Y", length(kptest))
+kgtestpl[kptest <= 0.5] <- "N"
+my_kaggle <- data.frame(ID = 1:nrow(kagtest), predictions = kgtestpl)
+write.csv(my_kaggle, file = "kagglepredictions.csv", row.names = FALSE)
+```
+
+My kaggle public score is 0.52996.
+
+d)
+My kaggle rank is 64th.
+
+## Question 3
+
+```{r}
+winetrain <- read.csv("WineTrain copy.csv")
+winetest <- read.csv("WineTest copy.csv")
+winetrain$Class <- as.factor(winetrain$Class)
+winetrain$Wine.Color <- as.factor(winetrain$Wine.Color)
+winetest$Class <- as.factor(winetest$Class)
+winetest$Wine.Color <- as.factor(winetest$Wine.Color)
+winedat <- rbind(winetrain, winetest)
+head(winedat)
+dim(winedat)
+```
+```{r}
+library(crossval)
+library(boot)
+```
+
+a)
+```{r}
+# logistic regression
+wineglm <- glm(Class ~ . - X - Class, data = winedat, family = binomial())
+wineprob <- predict(wineglm, data = winedat, type = "response")
+winepredl <- rep("Good", length(wineprob))
+winepredl[wineprob <= 0.5] <- "Bad"
+table(winepredl, winedat$Class)
+mean(winepredl != winedat$Class)
+```
+
+We can see our confusion matrix in our output above. Our misclassification rate for this model is 35.775%.
+
+b)
+```{r}
+# lda model
+winelda <- lda(Class ~ . - X - Class, data = winedat, CV = TRUE)
+summary(winelda)
+table(winelda$class, winedat$Class)
+mean(winelda$class != winedat$Class)
+```
+
+Our misclassification rate is 36.175%.
+
+c)
+```{r}
+# qda model
+wineqda <- qda(Class ~ . - X - Class, data = winedat, CV = TRUE)
+summary(wineqda)
+table(wineqda$class, winedat$Class)
+mean(wineqda$class != winedat$Class)
+```
+
+Our misclassification rate for our qda model of the wine data is 37.275%.
+
+d)
+```{r error = TRUE}
+# knn model with k = 25
+wine_knn1 <- train(as.factor(Class) ~ . - X, data = winedat, method = "knn", trControl = trainControl(method = "LOOCV", number = 10), tuneGrid = data.frame(k = 25))
+```
+
+e)
+Our model with the lowest misclassification rate is our glm model for our data. The highest misclassification rate is from our qda model.
+
+## Question 4
+a)
+```{r}
+# logistic regression with 10 fold method
+wineglm10f <- cv.glm(winedat, wineglm, K = 10)
+summary(wineglm10f)
+cv.err.10 <- wineglm10f$delta
+cv.err.10
+```
+
+The MSE for the glm of the wine data is 0.2266443 and the second error of 0.2265667 is for the LOOCV. 
+
+b)
+```{r error = TRUE}
+wine_lda <- train(as.factor(Class) ~ . - X, data = winedat, method = "lda", trControl = trainControl(method = "cv", number = 10))
+caret::confusionMatrix(wine_lda)
+```
+The misclassification rate is 1 - 0.6413 = 0.3587.
+
+c)
+```{r error = TRUE}
+wine_qda <- train(as.factor(Class) ~ . - X, data = winedat, method = "qda", trControl = trainControl(method = "cv", number = 10))
+caret::confusionMatrix(wine_qda)
+```
+
+The misclassification rate is 1 - 0.623 = 0.377.
+
+d)
+```{r error = TRUE}
+wine_knn <- train(as.factor(Class) ~ . - X, data = winedat, method = "knn", trControl = trainControl(method = "cv", number = 10), tuneGrid = data.frame(k = 25))
+caret::confusionMatrix(wine_knn)
+```
+
+The misclassification rate is 1 - 0.5882 = 0.4118.
+
+e)
+The cv glm model has the lowest misclassification rate amongst all of the cv models. Our highest misclassification rate is from our knn model. 
