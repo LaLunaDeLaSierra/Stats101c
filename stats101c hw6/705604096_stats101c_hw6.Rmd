@@ -1,0 +1,266 @@
+---
+title: "705604096_stats101c_hw6"
+author: "Jade Gregory"
+date: "2023-11-29"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(glmnet)
+```
+
+## Question 1
+```{r}
+College <- read.csv("CollegeF23.csv")
+head(College)
+set.seed(1128)
+index =sample(nrow(College), 2100,replace = FALSE)
+C.train=College[index,]
+C.test=College[-index,]
+dim(C.train)
+dim(C.test)
+```
+a)
+```{r}
+# least squares regression 
+collegelm <- lm(Expend ~ ., data = C.train)
+summary(collegelm)
+C.trainres <- residuals(collegelm)
+mse_train <- mean(C.trainres^2)
+test_pred <- predict(collegelm, newdata = C.test, type = "response")
+C.testres <- C.test$Expend - test_pred
+mse_test <- mean(C.testres^2)
+print(c(mse_train, mse_test))
+```
+
+The MSE for the training data is 9701589 and the MSE for the testing data is 8779286.
+
+b)
+```{r}
+# ridge regression
+set.seed(12345)
+i <- seq(10, -2, length = 100)
+lambda.v <- 10^i
+x_rid <- model.matrix(Expend ~. , data = C.train)
+y_rid <- C.train$Expend
+x_rid_tes <- model.matrix(Expend ~., data = C.test)
+y_rid_tes <- C.test$Expend
+model.ridge <- glmnet(x_rid, y_rid, alpha = 0, lambda = lambda.v)
+
+cv.output <- cv.glmnet(x_rid , y_rid, alpha = 0)
+bestlamb.cv <- cv.output$lambda.min
+
+glmtrapred <- predict(model.ridge, s = bestlamb.cv, newx = x_rid)
+glmtrares <- C.train$Expend - glmtrapred
+mseglmtra <- mean(glmtrares^2)
+glmtespred <- predict(model.ridge, s = bestlamb.cv, newx = x_rid_tes)
+glmtesres <- C.test$Expend - glmtespred
+mseglmtes <- mean(glmtesres^2)
+print(c(mseglmtra, mseglmtes))
+```
+
+The MSE for the training data is 9964969 and the MSE for the testing data is 9118191.
+
+c)
+```{r}
+# lasso regression
+model.lasso <- glmnet(x_rid, y_rid, alpha = 1, lambda = lambda.v)
+
+lassocv.output <- cv.glmnet(x_rid, y_rid, alpha = 1)
+bestlamb.lasso <- lassocv.output$lambda.min
+
+lasstrapred <- predict(model.lasso, s = bestlamb.lasso, newx = x_rid)
+lasstrares <- C.train$Expend - lasstrapred
+mselasstra <- mean(lasstrares^2)
+lasstespred <- predict(model.lasso, s = bestlamb.lasso, newx = x_rid_tes)
+lasstesres <- C.test$Expend - lasstespred
+mselasstes <- mean(lasstesres^2)
+print(c(mselasstra, mselasstes))
+predict(model.lasso, s = bestlamb.lasso, type = "coefficients")
+```
+
+The MSE of the training data is 9721518 and the MSE of the testing data is 8832009. 15 of our coefficients are nonzero. 
+
+## Question 2
+a)
+```{r}
+library(pls)
+```
+
+```{r}
+# PCR model
+pcr.fit <- pcr(Expend ~., data = C.train, scale = TRUE, validation = "CV")
+validationplot(pcr.fit, val.type = "MSEP", ylim = c(10000000, 15000000))
+summary(pcr.fit)
+out.pc <- princomp(x_rid)
+summary(out.pc)
+```
+```{r}
+# We cannot reduce the number of PCs in our model since the lowest MSE is with 17 PCs
+pcrtrares <- residuals(pcr.fit)
+msepcrtra <- mean(pcrtrares^2)
+pcrtespred <- predict(pcr.fit, newdata = C.test, type = "response")
+pcrtesres <- C.test$Expend - pcrtespred
+msepcrtes <- mean(pcrtesres^2)
+print(c(msepcrtra, msepcrtes))
+povmat <- matrix(c(0.6407756, 0.2646808, 4.611027e-02, 2.644483e-02, 0.00951482, 6.341816e-03, 5.187948e-03, 5.611999e-04, 3.674423e-04, 7.074790e-06, 3.175986e-06, 2.552922e-06, 1.348134e-06, 6.225709e-07,4.409463e-07, 1.339848e-07, 1.107477e-09), byrow = TRUE, nrow = 1)
+rownames(povmat) <- "Proportion of Variance"
+colnames(povmat) <- c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11", "PC12", "PC13", "PC14", "PC15", "PC16", "PC17")
+povmat
+```
+
+Our MSE for our training data is 12425394, and our MSE for our testing data is 11471031. We have 17 M principal components since the MSE was not found to be smaller at any other PC value. The proportion of variance explained by PC 1 is 0.6407756. The proportion of variance explained by each PC is displayed in the matrix. 
+
+b)
+```{r}
+pls.fit <- plsr(Expend ~., data = C.train, scale = TRUE, validation = "CV")
+summary(pls.fit)
+validationplot(pls.fit, val.type = "MSEP", ylim = c(9500000, 11000000))
+abline(v = 11, col = "blue")
+```
+```{r}
+x_rid_pls <- model.matrix(Expend ~ . - Personal - PhD - Terminal - S.F.Ratio - perc.alumni - Grad.Rate, data = C.train)
+pls.11pc <- plsr(Expend ~., data = C.train, scale = TRUE, ncomp = 11)
+summary(pls.11pc)
+out.11pc <- princomp(x_rid_pls)
+summary(out.11pc)
+# calculating MSE
+plstrares <- residuals(pls.11pc)
+mseplstra <- mean(plstrares^2)
+plstespred <- predict(pls.11pc, newdata = C.test, type = "response")
+plstesres <- C.test$Expend - plstespred
+mseplstes <- mean(plstesres^2)
+print(c(mseplstra, mseplstes))
+```
+```{r}
+# Proportion of variance explained martix
+povmat2 <- matrix(c(0.6449704, 0.2661114, 4.635677e-02, 2.652249e-02, 9.573237e-03,  5.514157e-03, 5.652522e-04, 3.803226e-04, 5.429078e-06, 5.385942e-07, 1.261216e-09), nrow = 1)
+rownames(povmat2) <- "Proportion of Variance"
+colnames(povmat2) <- c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11")
+povmat2
+```
+
+Our MSE for our training data is 10360532 and our MSE for our testing data is 9508265. We were able to use 11 components based off of our cross validation. The proportion of variance explained by each PC is displayed in the matrix. 
+
+## Question 3
+a)
+```{r}
+# Backwards Stepwise Selection
+baic <- step(collegelm, direction = "backward", data = C.train, k = log(nrow(C.train)))
+```
+```{r}
+bictrares <- residuals(baic)
+msebictra <- mean(bictrares^2)
+bictespred <- predict(baic, newdata = C.test, type = "response")
+bictesres <- C.test$Expend - bictespred
+msebictes <- mean(bictesres^2)
+print(c(msebictra, msebictes))
+```
+
+Our satisfactory model from our BIC is Expend ~ Private + Apps + Accept + Top10perc + Top25perc + P.Undergrad + Outstate + Books + Terminal + S.F.Ratio + Grad.Rate. The MSE for our training data is 9743362 and the MSE for our testing data is 8828745.
+
+
+b)
+```{r}
+library(gam)
+```
+
+```{r}
+# GAM model
+traingam <- gam(Expend ~ Private + Apps + Accept + Top10perc + Top25perc + P.Undergrad + Outstate + Books + Terminal + S.F.Ratio + Grad.Rate, data = C.train)
+plot(traingam, se = TRUE, col = "blue")
+```
+
+All of our predictors have a linear relationship with the response as shown by their smooth plots. We can also argue that all of the predictors in our model are significant because none of them have confidence intervals that are horizontal across the graph. 
+
+c)
+```{r}
+gamtrares <- residuals(traingam)
+msegamtra <- mean(gamtrares^2)
+gamtespred <- predict(traingam, newdata = C.test, type = "response")
+gamtesres <- C.test$Expend - gamtespred
+msegamtes <- mean(gamtesres^2)
+print(c(msegamtra, msegamtes))
+```
+
+Our MSE value for our testing data is 8828745. This is reduced from our MSE value for our training data which is 9743362. This means that our model holds well amongst our testing data.
+d)
+```{r}
+summary(traingam)
+```
+
+No, from our output we do not see that any of the predictors have a strong non-linear relationship with our response. 
+
+## Question 4
+The testing MSE for the Least Squares full model using lm is 8779286. The testing MSE for the ridge model with the best lambda is 9118191. The testing MSE for the lasso model with the best lambda is 8832009. The testing MSE for the PCR model is 11471031. The testing MSE for the PLS model is 9508265. The testing MSE for the stepwise backward regression using BIC is 8828745. The testing MSE for the GAM is 8828745. We can see that there is not a huge amount of variation among our testing MSE values. Our PCR model does the worst, with the highest MSE of 11471031. Our least squares full model using does the best, with the smallest MSE value of 8779286. From this, we can say that our least squares full model has the least amount of error. 
+
+## Question 5
+a)
+```{r}
+births <- read.csv("better2000births.csv")
+birth <- na.omit(births)
+head(birth)
+dim(birth)
+```
+```{r}
+set.seed(1128)
+birth$Gender <- as.factor(birth$Gender)
+birth$Premie <- as.factor(birth$Premie)
+birth$Marital <- as.factor(birth$Marital)
+birth$Racemom <- as.factor(birth$Racemom)
+birth$Racedad <- as.factor(birth$Racedad)
+birth$Hispmom <- as.factor(birth$Hispmom)
+birth$Hispdad <- as.factor(birth$Hispdad)
+birth$Habit <- as.factor(birth$Habit)
+birth$MomPriorCond <- as.factor(birth$MomPriorCond)
+birth$BirthDef <- as.factor(birth$BirthDef)
+birth$DelivComp <- as.factor(birth$DelivComp)
+birth$BirthComp <- as.factor(birth$BirthComp)
+s.train.i <- sample(1:nrow(birth), 1000, replace = FALSE)
+length(s.train.i)
+b.train <- birth[s.train.i,]
+dim(b.train)
+b.test <- birth[-s.train.i,]
+dim(b.test)
+```
+```{r}
+library(tree)
+```
+
+```{r}
+tree.birth <- tree(Premie ~., data = b.train)
+summary(tree.birth)
+treetespred <- predict(tree.birth, newdata = b.test, type = "class")
+mean(treetespred != b.test$Premie)
+```
+
+Our testing misclassification rate is 0.06212425.
+
+b)
+```{r}
+cv.tree.birth <- cv.tree(tree.birth, FUN = prune.misclass)
+plot(cv.tree.birth)
+abline(v = 3, col = "blue")
+par(mfrow = c(1, 2))
+plot(cv.tree.birth$size, cv.tree.birth$dev, type = "b")
+plot(cv.tree.birth$k, cv.tree.birth$dev, type = "b")
+```
+
+We can see that the best tree will have 3 nodes. 
+
+```{r}
+prune.tree.birth <- prune.misclass(tree.birth, best = 3)
+plot(prune.tree.birth)
+text(prune.tree.birth, pretty = 0)
+summary(prune.tree.birth)
+```
+
+c)
+Our tree was pruned down to only 3 nodes. The only variable actually used in the tree is "weight", which was decided by our code. This means that smoking is not in our model as a potential cause of premature births. It does not include many factors that affect premature births, only weight. 
+
+d)
+From our output, we can see that our misclassification rate is 5.4%. This means our model is more accurate than the 9% misclassification rate given in the question. 
+
