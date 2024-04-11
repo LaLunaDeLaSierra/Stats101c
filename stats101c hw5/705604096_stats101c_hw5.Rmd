@@ -1,0 +1,130 @@
+---
+title: "705604096_stats101c_hw5"
+author: "Jade Gregory"
+date: "2023-11-08"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(dplyr)
+```
+
+## Question 1
+```{r}
+births <- read.csv("birthsnewone.csv")
+head(births)
+set.seed(123456789)
+i = 1:dim(births)[1]
+i.train <- sample(i, 5000, replace = FALSE)
+B.train = births[i.train,]
+B.test = births[-i.train, ]
+head(B.train)
+```
+
+a)
+```{r}
+# linear model
+births_lm <- lm(Birth.Weight..g. ~ . - X, data = B.train)
+summary(births_lm)
+trainres <- residuals(births_lm)
+msetrain <- mean(trainres^2)
+testpred <- predict(births_lm, newdata = B.test, type = "response")
+testres <- B.test$Birth.Weight..g. - testpred
+msetest <- mean(testres^2)
+print(c(msetrain, msetest))
+```
+
+The training MSE value is 18691.16 and the testing MSE value is 19266.60. Our significant predictors are Plurality.of.birth, Gender, RaceWhite, Date.LBirth, Month.LBirth, Weeks, Birth.weight.group, Month.Term, SmokerNo, and Wt.Gain.
+
+b)
+```{r}
+baic <- step(births_lm, direction = "backward", data = B.train, k = log(nrow(B.train)))
+```
+
+Our predictors are Plurality.of.birth, Date.LBirth, Month.LBirth, Weeks, Birth.weight.group, Father.Minority, Smoker, and Wt.Gain.
+
+```{r}
+biclm <- lm(Birth.Weight..g. ~ Plurality.of.birth + Date.LBirth + Month.LBirth + Weeks + Birth.weight.group + Father.Minority + Smoker + Wt.Gain, data = B.train)
+btrares <- residuals(biclm)
+msebictra <- mean(btrares^2)
+bictespred <- predict(biclm, newdata = B.test, type = "response")
+bictesres <- B.test$Birth.Weight..g. - bictespred
+msebictes <- mean(bictesres^2)
+print(c(msebictra, msebictes))
+```
+
+Our training MSE is 18860.38 and our testing MSE is 19267.97.
+
+c)
+
+```{r}
+library(tidyr)
+```
+
+```{r}
+i <- seq(10, -2, length = 100)
+lambda.v <- 10^i
+B.train2 <- na.omit(B.train)
+x <- model.matrix(Birth.Weight..g. ~., data = B.train2)
+y <- B.train2$Birth.Weight..g.
+library(glmnet)
+model.ridge <- glmnet(x, y, alpha = 0, lambda = lambda.v)
+coeffs <- coef(model.ridge)
+summary(model.ridge)
+my.l2=function(betas){#calculate l2 norm
+  sqrt(sum(betas^2))}
+  ls2=c()
+  for (i in 1:100){ 
+    ls2=c(ls2, my.l2(coeffs[-c(1,2),i]))
+  }
+nvars <- sapply(B.train2, is.numeric)
+B.train2[, nvars] <- scale(B.train2[, nvars])
+cvars <- sapply(B.train2, is.factor)
+B.train2[, cvars] <- lapply(B.train2[, cvars], as.factor)
+
+lslm2 <- lm(Birth.Weight..g. ~. - X, data = B.train2)
+lscoeff <- coef(lslm2)
+ls2ls <- sqrt(sum(lscoeff^2, na.rm = TRUE))
+myrat <- ls2 / ls2ls
+plot(lambda.v[80:100], myrat[80:100])
+```
+
+d)
+```{r}
+births2 <- na.omit(births)
+x2 <- model.matrix(Birth.Weight..g. ~., data = births2)
+y2 <- births2$Birth.Weight..g.
+model.ridgeD <- glmnet(x2, y2, alpha = 0, lambda = lambda.v)
+
+cv.output <- cv.glmnet(x2, y2, alpha = 0)
+bestlamb.cv <- cv.output$lambda.min
+bestlamb.cv
+plot(model.ridge)
+
+predict(model.ridge, s = bestlamb.cv, type = "coefficients")
+```
+
+Our best lambda is 59.2054. All 49 of our coefficients survived.
+
+e)
+```{r}
+model.lasso <- glmnet(x, y, alpha = 1, lambda = lambda.v)
+summary(model.lasso)
+```
+
+f)
+```{r}
+lassocv.output <- cv.glmnet(x, y, alpha = 1)
+bestlamb.lasso <- lassocv.output$lambda.min
+bestlamb.lasso
+plot(model.lasso)
+predict(model.lasso, s = bestlamb.lasso, type = "coefficients")
+```
+
+Our best lambda is 2.040796. 26 predictors were removed in this model, leaving 23 predictors.
+
+The Ridge Regression did not eliminate any predictors while the Lasso Regression eliminated around half of the predictors. The Lasso Regression model is more rigid than our Ridge Regression model, with the Ridge Regression Model being more flexible. Therefore, our Ridge Regression model will produce less accurate predictions but with less bias, while our Lasso Regression will produce more accurate predictions with higher bias.
