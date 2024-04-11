@@ -1,0 +1,461 @@
+---
+title: "705604096_stats101c_hw2"
+author: "Jade Gregory"
+date: "2023-10-18"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(gridExtra)
+```
+
+## Question 1
+```{r}
+bcdat <- read.csv("BCNew.csv")
+head(bcdat)
+dim(bcdat)
+```
+
+a)
+The dimensions of the BCNew data set is 850 rows by 12 columns. 
+
+b)
+```{r}
+g1 <- ggplot(bcdat, aes(radius_mean, color = diagnosis)) + geom_density()
+g2 <- ggplot(bcdat, aes(texture_mean, color = diagnosis)) + geom_density()
+g3 <- ggplot(bcdat, aes(perimeter_mean, color = diagnosis)) + geom_density()
+g4 <- ggplot(bcdat, aes(area_mean, color = diagnosis)) + geom_density()
+g5 <- ggplot(bcdat, aes(smoothness_mean, color = diagnosis)) + geom_density()
+g6 <- ggplot(bcdat, aes(compactness_mean, color = diagnosis)) + geom_density()
+g7 <- ggplot(bcdat, aes(concavity_mean, color = diagnosis)) + geom_density()
+g8 <- ggplot(bcdat, aes(concave.points_mean, color = diagnosis)) + geom_density()
+g9 <- ggplot(bcdat, aes(symmetry_mean, color = diagnosis)) + geom_density()
+g10 <- ggplot(bcdat, aes(fractal_dimension_mean, color = diagnosis)) + geom_density()
+grid.arrange(g1,g2,g3,g4,g5,g6,g7,g8,g9,g10, nrow = 5)
+```
+
+Based off of the density graphs, area_mean, concavity_mean, and concave.points_mean are the best three predictors since they have the least amount of overlap between the diagnosis types. 
+
+c)
+```{r}
+library(class)
+```
+
+```{r}
+set.seed(113355)
+test.i <- sample(1:850, 250, replace = F)
+X.mat <- bcdat[,c(6, 9, 10)]
+head(X.mat)
+Xtest <- X.mat[test.i,]
+Xtrain <- X.mat[-test.i,]
+Ytest <- bcdat$diagnosis[test.i]
+Ytrain <- bcdat$diagnosis[-test.i]
+```
+
+```{r}
+#k = 1
+out1 <- knn(Xtrain, Xtest, Ytrain, k = 1)
+mean(out1 == Ytest)
+#k = 3
+out3 <- knn(Xtrain, Xtest, Ytrain, k = 3)
+mean(out3 == Ytest)
+#k = 5
+out5 <- knn(Xtrain, Xtest, Ytrain, k = 5)
+mean(out5 == Ytest)
+# k = 7
+out7 <- knn(Xtrain, Xtest, Ytrain, k = 7)
+mean(out7 == Ytest)
+# k = 9
+out9 <- knn(Xtrain, Xtest, Ytrain, k = 9)
+mean(out9 == Ytest)
+# k = 11
+out11 <- knn(Xtrain, Xtest, Ytrain, k = 11)
+mean(out11 == Ytest)
+```
+
+d)
+```{r}
+mean(out1 != Ytest)
+mean(out3 != Ytest)
+mean(out5 != Ytest)
+mean(out7 != Ytest)
+mean(out9 != Ytest)
+mean(out11 != Ytest)
+```
+The best k is k = 1 because it has the lowest misclassification rate.
+
+e)
+```{r}
+set.seed(1133355)
+stest.i <- sample(1:850, 250, replace = F)
+X.mat.scale <- scale(bcdat[,c(6, 9, 10)])
+head(X.mat.scale)
+sXtest <- X.mat.scale[stest.i,]
+sXtrain <- X.mat.scale[-stest.i,]
+sYtest <- bcdat$diagnosis[stest.i]
+sYtrain <- bcdat$diagnosis[-stest.i]
+```
+```{r}
+sout1 <- knn(sXtrain, sXtest, sYtrain, k = 1)
+mean(sout1 == sYtest)
+sout3 <- knn(sXtrain, sXtest, sYtrain, k = 3)
+mean(sout3 == sYtest)
+sout5 <- knn(sXtrain, sXtest, sYtrain, k = 5)
+mean(sout5 == sYtest)
+sout7 <- knn(sXtrain, sXtest, sYtrain, k = 7)
+mean(sout7 == sYtest)
+sout9 <- knn(sXtrain, sXtest, sYtrain, k = 9)
+mean(sout9 == sYtest)
+sout11 <- knn(sXtrain, sXtest, sYtrain, k = 11)
+mean(sout11 == sYtest)
+```
+
+f)
+```{r}
+mean(sout1 != sYtest)
+mean(sout3 != sYtest)
+mean(sout5 != sYtest)
+mean(sout7 != sYtest)
+mean(sout9 != sYtest)
+mean(sout11 != sYtest)
+```
+The best k is k = 3 because it has the lowest misclassification rate.
+
+## Question 2
+```{r}
+#non scaled
+set.seed(113355)
+ntest.i <- sample(1:850, 250, replace = F)
+nX.mat <- bcdat[,c(3:12)]
+head(nX.mat)
+nXtest <- nX.mat[ntest.i,]
+nXtrain <- nX.mat[-ntest.i,]
+nYtest <- bcdat$diagnosis[ntest.i]
+nYtrain <- bcdat$diagnosis[-ntest.i]
+```
+
+```{r}
+nout1 <- knn(nXtrain, nXtest, nYtrain, k = 1)
+mean(nout1 == nYtest)
+nout3 <- knn(nXtrain, nXtest, nYtrain, k = 3)
+mean(nout3 == nYtest)
+nout5 <- knn(nXtrain, nXtest, nYtrain, k = 5)
+mean(nout5 == nYtest)
+nout7 <- knn(nXtrain, nXtest, nYtrain, k = 7)
+mean(nout7 == nYtest)
+nout9 <- knn(nXtrain, nXtest, nYtrain, k = 9)
+mean(nout9 == nYtest)
+nout11 <- knn(nXtrain, nXtest, nYtrain, k = 11)
+mean(nout11 == nYtest)
+```
+
+```{r}
+mean(nout1 != nYtest)
+mean(nout3 != nYtest)
+mean(nout5 != nYtest)
+mean(nout7 != nYtest)
+mean(nout9 != nYtest)
+mean(nout11 != nYtest)
+```
+
+The best k is k = 1 because it has the lowest misclassification rate.
+
+```{r}
+#scaled
+set.seed(113355)
+ptest.i <- sample(1:850, 250, replace = F)
+pX.mat.scale <- scale(bcdat[,c(6, 9, 10)])
+head(pX.mat.scale)
+pXtest <- pX.mat.scale[ptest.i,]
+pXtrain <- pX.mat.scale[-ptest.i,]
+pYtest <- bcdat$diagnosis[ptest.i]
+pYtrain <- bcdat$diagnosis[-ptest.i]
+```
+```{r}
+pout1 <- knn(pXtrain, pXtest, pYtrain, k = 1)
+mean(pout1 == pYtest)
+pout3 <- knn(pXtrain, pXtest, pYtrain, k = 3)
+mean(pout3 == pYtest)
+pout5 <- knn(pXtrain, pXtest, pYtrain, k = 5)
+mean(pout5 == pYtest)
+pout7 <- knn(pXtrain, pXtest, pYtrain, k = 7)
+mean(pout7 == pYtest)
+pout9 <- knn(pXtrain, pXtest, pYtrain, k = 9)
+mean(pout9 == pYtest)
+pout11 <- knn(pXtrain, pXtest, pYtrain, k = 11)
+mean(pout11 == pYtest)
+```
+
+```{r}
+mean(pout1 != pYtest)
+mean(pout3 != pYtest)
+mean(pout5 != pYtest)
+mean(pout7 != pYtest)
+mean(pout9 != pYtest)
+mean(pout11 != pYtest)
+```
+The best k is k = 1 because it has the lowest misclassification rate. 
+
+For the unscaled model of all variables, I get the same misclassification rates as I did in part 1. I believe that our scaled model provides more accurate statistics of our data as it helps to balance the impact of our predictor variables onto our dependent variable, which can improve the quality of models. 
+
+## Question 3
+a)
+```{r}
+testdat <- bcdat[test.i,]
+traindat <- bcdat[-test.i,]
+```
+
+```{r}
+traindat$diagnosis <- as.factor(traindat$diagnosis)
+lr.model1 <- glm(diagnosis ~ . - X - diagnosis, data = traindat, family = binomial())
+summary(lr.model1)
+```
+
+
+```{r}
+# training data confusion matrix
+trainprob <- predict(lr.model1, data = traindat, type = "response")
+predlogit <- rep('M', length(trainprob))
+predlogit[trainprob <= 0.5] <- 'B'
+table(predlogit, traindat$diagnosis)
+mean(predlogit == traindat$diagnosis)
+mean(predlogit != traindat$diagnosis)
+```
+
+The misclassification rate is 5%
+
+```{r}
+# testing data confusion matrix
+testprob <- predict(lr.model1, data = traindat, newdata = testdat, type = "response")
+predlogit2 <- rep("M", length(testprob))
+predlogit2[testprob <= 0.5] <- "B"
+table(predlogit2, testdat$diagnosis)
+mean(predlogit2 == testdat$diagnosis)
+mean(predlogit2 != testdat$diagnosis)
+```
+
+The misclassification rate is 5.6%
+
+```{r}
+scaleXtest <- scale(testdat[c(3:12)])
+scaleYtest <- testdat$diagnosis
+scaleXtrain <- scale(traindat[c(3:12)])
+scaleYtrain <- traindat$diagnosis
+sctest <- data.frame(scaleYtest, scaleXtest)
+sctrain <- data.frame(scaleXtrain, scaleYtrain)
+head(sctest)
+```
+
+
+```{r}
+myglm <- glm(scaleYtrain ~ scaleXtrain, data = sctrain, family = binomial())
+summary(myglm)
+```
+
+```{r}
+# training data confusion matrix
+trainprob3 <- predict(myglm, data = sctrain, type = "response")
+predlogit3 <- rep('M', length(trainprob3))
+predlogit3[trainprob3 <= 0.5] <- 'B'
+table(predlogit3, sctrain$scaleYtrain)
+mean(predlogit3 == sctrain$scaleYtrain)
+mean(predlogit3 != sctrain$scaleYtrain)
+```
+
+The misclassification rate is 5%
+
+```{r error = TRUE}
+# testing data confusion matrix
+testprob4 <- predict(myglm, data = sctrain, newdata = sctest, type = "response")
+predlogit4 <- rep('M', length(testprob4))
+predlogit4[testprob4 <= 0.5] <- 'B'
+table(predlogit4, sctest$scaleYtest)
+mean(predlogit4 == sctest$scaleYtest)
+mean(predlogit4 != sctest$scaleYtest)
+```
+
+The misclassification rate is 47.3%
+
+c)
+Our confusion matrices for the testing data and training data for the scaled and unscaled data sets are listed above. Our misclassification rate for the unscaled training data is 5%. Our misclassification rate for the unscaled testing data is 5.6%. Our misclassification rate for the scaled training data is 5% as well. Our misclassification rate for the scaled training data is 47.3%. We can see that the misclassification rates for the unscaled and scaled training data are the same.
+
+## Question 4
+We can see that our unscaled glm model of all predictors has the lowest misclassification rate among all of the glm and knn models we made. Therefore, I would argue that it is our "hero" model in this instance.
+
+## Question 5
+
+```{r}
+boston <- read.csv("boston.csv")
+dim(boston)
+```
+
+
+```{r}
+.7*506
+506 - 354
+```
+```{r}
+crim_med <- median(boston$crim)
+for(i in 1:length(boston$crim)){
+if(boston$crim[i] >= crim_med){
+  boston$med_crim[i] <- 1
+} else {
+  boston$med_crim[i] <- 0
+}
+}
+```
+
+```{r}
+crim_med
+boston$med_crim <- as.factor(boston$med_crim)
+head(boston)
+```
+
+```{r}
+gg1 <- ggplot(boston, aes(zn, color = med_crim)) + geom_density()
+gg2 <- ggplot(boston, aes(indus, color = med_crim)) + geom_density()
+gg3 <- ggplot(boston, aes(chas, color = med_crim)) + geom_density()
+gg4 <- ggplot(boston, aes(nox, color = med_crim)) + geom_density()
+gg5 <- ggplot(boston, aes(rm, color = med_crim)) + geom_density()
+gg6 <- ggplot(boston, aes(age, color = med_crim)) + geom_density()
+gg7 <- ggplot(boston, aes(dis, color = med_crim)) + geom_density()
+gg8 <- ggplot(boston, aes(rad, color = med_crim)) + geom_density()
+gg9 <- ggplot(boston, aes(tax, color = med_crim)) + geom_density()
+gg10 <- ggplot(boston, aes(ptratio, color = med_crim)) + geom_density()
+gg11 <- ggplot(boston, aes(black, color = med_crim)) + geom_density()
+gg12 <- ggplot(boston, aes(lstat, color = med_crim)) + geom_density()
+gg13 <- ggplot(boston, aes(medv, color = med_crim)) + geom_density()
+grid.arrange(gg1,gg2,gg3,gg4,gg5,gg6,gg7,gg8,gg9,gg10,gg11,gg12,gg13, nrow = 5)
+```
+
+From our density graphs, the top five predictors in order of best predictor to worst are the variables zn, black, rad, age, and dis.
+
+```{r}
+# using training data to fit knn models
+set.seed(113355)
+ror <- sample(1:506, 354, replace = F)
+# best 3 predictors
+best3bos <- boston[,c(2, 12, 9)]
+head(best3bos)
+# choose k as sqrt(n) 
+myk <- 23
+best3Xtest <- best3bos[ror,]
+best3Xtrain <- best3bos[-ror,]
+best3Ytest <- boston$med_crim[ror]
+best3Ytrain <- boston$med_crim[-ror]
+```
+```{r}
+#k = 23
+bos3out <- knn(best3Xtrain, best3Xtest, best3Ytrain, k = myk)
+mean(bos3out == best3Ytest)
+mean(bos3out != best3Ytest)
+```
+
+The knn model for our best 3 predictors has a misclassification rate of 19.774%
+
+```{r}
+# using training data to fit knn models
+set.seed(113355)
+ror <- sample(1:506, 354, replace = F)
+#best 4 predictors
+best4bos <- boston[,c(2, 12, 9, 7)]
+head(best4bos)
+best4Xtest <- best4bos[ror,]
+best4Xtrain <- best4bos[-ror,]
+best4Ytest <- boston$med_crim[ror]
+best4Ytrain <- boston$med_crim[-ror]
+```
+
+```{r}
+# k = 23
+bos4out <- knn(best4Xtrain, best4Xtest, best4Ytrain, k = myk)
+mean(bos4out == best4Ytest)
+mean(bos4out != best4Ytest)
+```
+
+The knn model for our best 4 predictors has a misclassification rate of 21.4%
+
+```{r}
+# using training data to fit knn models
+set.seed(113355)
+ror <- sample(1:506, 354, replace = F)
+#best 5 predictors
+best5bos <- boston[,c(2, 12, 9, 7, 8)]
+head(best5bos)
+best5Xtest <- best5bos[ror,]
+best5Xtrain <- best5bos[-ror,]
+best5Ytest <- boston$med_crim[ror]
+best5Ytrain <- boston$med_crim[-ror]
+```
+
+```{r}
+# k = 23
+bos5out <- knn(best5Xtrain, best5Xtest, best5Ytrain, k = myk)
+mean(bos5out == best5Ytest)
+mean(bos5out != best5Ytest)
+```
+
+The knn model for our best 5 predictors has a misclassification rate of 21.7%
+
+```{r}
+best3 <- data.frame(best3Xtrain, best3Ytrain)
+head(best3)
+```
+
+```{r}
+# glm for best 3 predictors 
+bosglm3 <- glm(best3Ytrain ~ zn + black + rad, data = best3, family = binomial())
+summary(bosglm3)
+```
+
+```{r}
+bos3prob <- predict(bosglm3, data = best3, type = "response")
+bos3pred <- rep("1", length(bos3prob))
+bos3pred[bos3prob <= 0.5] <- "0"
+table(bos3pred, best3$best3Ytrain)
+mean(bos3pred == best3$best3Ytrain)
+mean(bos3pred != best3$best3Ytrain)
+```
+The glm for the best 3 predictors has a misclassification rate of  17.1%
+
+```{r}
+best4 <- data.frame(best4Xtrain, best4Ytrain)
+head(best4)
+# glm for best 4 predictors 
+bosglm4 <- glm(best4Ytrain ~ zn + black + rad + age, data = best4, family = binomial())
+summary(bosglm4)
+```
+
+```{r}
+bos4prob <- predict(bosglm4, data = best4, type = "response")
+bos4pred <- rep("1", length(bos4prob))
+bos4pred[bos4prob <= 0.5] <- "0"
+table(bos4pred, best4$best4Ytrain)
+mean(bos4pred == best4$best4Ytrain)
+mean(bos4pred != best4$best4Ytrain)
+```
+The glm for our best 4 predictors has a misclassification rate of 19.07%
+
+```{r}
+best5 <- data.frame(best5Xtrain, best5Ytrain)
+head(best5)
+# glm for best 5 predictors 
+bosglm5 <- glm(best5Ytrain ~ zn + black + rad + age + dis, data = best5, family = binomial())
+summary(bosglm5)
+```
+
+```{r}
+bos5prob <- predict(bosglm5, data = best5, type = "response")
+bos5pred <- rep("1", length(bos5prob))
+bos5pred[bos5prob <= 0.5] <- "0"
+table(bos5pred, best5$best5Ytrain)
+mean(bos5pred == best5$best5Ytrain)
+mean(bos5pred != best5$best5Ytrain)
+```
+The glm for our best 5 predictors has a misclassification rate of 19.7%
+
+From the given models and their misclassification rates, I believe our hero model is the glm model for the best three predictors in our model. This is because it has the lowest misclassification rate. All of our findings from our models had misclassification rates above 10%, even some in the 20% area. But, the glm model for the best three predictors had the lowest of all six models. 
