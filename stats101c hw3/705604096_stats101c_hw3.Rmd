@@ -1,0 +1,241 @@
+---
+title: "705604096_stats101c_hw3"
+author: "Jade Gregory 705604096"
+date: "2023-10-23"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+```
+
+## Question 1
+```{r}
+winetrain <- read.csv("WineTrain.csv")
+winetest <- read.csv("WineTest.csv")
+winetrain$Class <- as.factor(winetrain$Class)
+winetrain$Wine.Color <- as.factor(winetrain$Wine.Color)
+winetest$Class <- as.factor(winetest$Class)
+winetest$Wine.Color <- as.factor(winetest$Wine.Color)
+head(winetest)
+head(winetrain)
+```
+a)
+```{r}
+# wine training data glm model
+winetrainglm <- glm(Class ~ . - X - Class, data = winetrain, family = binomial())
+summary(winetrainglm)
+```
+
+```{r}
+# wine training data confusion matrix
+winetrainprob <- predict(winetrainglm, data = winetrain, type = "response")
+wtrainpredl <- rep("Good", length(winetrainprob))
+wtrainpredl[winetrainprob <= 0.5] <- "Bad"
+table(wtrainpredl, winetrain$Class)
+# misclassification rate
+mean(wtrainpredl != winetrain$Class)
+```
+
+The misclassification rate of the wine training data for the glm model is 35.75%.
+
+```{r}
+# wine testing data confusion matrix
+winetestprob <- predict(winetrainglm, data = winetrain, newdata = winetest, type = "response")
+wtestpredl <- rep("Good", length(winetestprob))
+wtestpredl[winetestprob <= 0.5] <- "Bad"
+table(wtestpredl, winetest$Class)
+# misclassification rate
+mean(wtestpredl != winetest$Class)
+```
+
+The misclassification rate of the wine testing data for the glm model is 34.75%. 
+
+b)
+```{r}
+# lda model
+winelda <- lda(Class ~ . - X - Class, data = winetrain)
+winelda
+```
+
+```{r}
+library(caret)
+```
+
+```{r}
+# training data confusion matrix
+t1 <- table(predict(winelda)$class, winetrain$Class)
+print(confusionMatrix(t1))
+```
+
+```{r}
+# training data misclassification rate
+winepred1 <- predict(winelda, winetrain)
+wine.classify <- winepred1$class
+wine.classperc <- mean(wine.classify != winetrain$Class) 
+wine.classperc
+```
+
+The misclassification rate for the wine training data for the lda model is 35.857%.
+
+```{r}
+# testing data confusion matrix
+t2 <- table(predict(winelda, winetest)$class, winetest$Class)
+print(confusionMatrix(t2))
+```
+
+```{r}
+# misclassification rate for testing data
+winepred2 <- predict(winelda, winetest)
+wine.classify2 <- winepred2$class
+wine.classperc2 <- mean(wine.classify2 != winetest$Class) 
+wine.classperc2
+```
+
+The misclassification rate for wine testing data for the lda model is 34.916%.
+
+c)
+```{r}
+# qda model
+wineqda <- qda(Class ~ . - X - Class, data = winetrain, method = "mle")
+wineqda
+```
+
+```{r}
+# training confusion matrix
+wqdapred <- predict(wineqda)$class
+table(wqdapred, winetrain$Class)
+# misclassification rate
+mean(winetrain$Class != wqdapred)
+```
+
+The misclassification rate for the qda model of the training data is 35.96%.
+```{r}
+# testing confusion matrix
+wqdapred2 <- predict(wineqda, winetest)$class
+table(wqdapred2, winetest$Class)
+# misclassification rate
+mean(winetest$Class != wqdapred2)
+```
+
+The misclassification rate for the qda model for the testing data is 38.16%.
+
+d)
+```{r}
+library(class)
+```
+
+```{r}
+set.seed(113355)
+winetestX <- winetest[-c(1,14)]
+winetrainX <- winetrain[-c(1,14)]
+winetestY <- winetest$Class
+winetrainY <- winetrain$Class
+winetrainX[-c(1)] <- scale(winetrainX[-c(1)])
+winetestX[, -1] <- scale(winetestX[, -1])
+winetrainX$Wine.Color <- as.numeric(winetrainX$Wine.Color)
+winetestX$Wine.Color <- as.numeric(winetestX$Wine.Color)
+wineknn <- knn(winetrainX, winetestX, winetrainY, k = 25)
+table(wineknn, winetestY)
+mean(wineknn != winetestY)
+```
+
+The misclassification rate for the knn model is 35.08%.
+
+e)
+Since the misclassification rate of the wine testing data for the glm model is 34.75%, I would argue that this is our best model. This is because the misclassification rate is the lowest among all of the models we produced. All of our models had misclassification rates that were near 30%, and they appeared to produce similar misclassification rates close in value.
+
+## Question 2
+```{r}
+olives <- read.csv("Olives.csv")
+olives$region <- as.factor(olives$region)
+olives$area <- as.factor(olives$area)
+set.seed(1234567)
+i = 1:dim(olives)[1]
+i.train <- sample(i, 400, replace = FALSE)
+O.train <- olives[i.train,]
+O.test <- olives[-i.train,]
+O.testY <- O.test$region
+```
+
+a)
+```{r}
+library(e1071)
+```
+
+```{r}
+olive.nb <- naiveBayes(region ~ . - X - region, data = O.train)
+olive.nb
+```
+```{r}
+olive.fit <- predict(olive.nb, O.test)
+table(olive.fit, O.test$region)
+mean(olive.fit != O.testY)
+```
+
+The misclassification rate of our testing data is 2.9%.
+
+b)
+```{r}
+oliveslda <- lda(region ~ . - X - region, data = O.train)
+```
+
+```{r}
+t_olive <- table(predict(oliveslda, O.test)$class, O.test$region)
+print(confusionMatrix(t_olive))
+```
+
+```{r}
+olivespred <- predict(oliveslda, O.test)
+olives.classify <- olivespred$class
+mean(olives.classify != O.test$region)
+```
+
+The misclassification rate is 0%.
+
+c)
+```{r}
+oliveslda
+```
+
+The proportion of tracee for LD1 is 0.7628, and the proportion of trace for LD2 is 0.2372.
+
+d)
+```{r}
+library(ggplot2)
+```
+
+```{r}
+LD1 <- predict(oliveslda)$x[,1]
+LD2 <- predict(oliveslda)$x[,2]
+centroids <- aggregate(data = O.train, cbind(LD1, LD2) ~ region, mean)
+cenplot <- ggplot(data = O.train, aes(LD1, LD2, colour = region, shape = region)) + geom_point()
+cenplot + ggtitle("LDA1 vs LDA2 for region") + geom_point(size = 1) + geom_point(data = centroids, size = 4, colour = "black")
+```
+
+e)
+```{r}
+O.train$area <- as.numeric(O.train$area)
+O.test$area <- as.numeric(O.test$area)
+# qda model
+olivesqda <- qda(region ~ . - X - region, data = O.train, method = "mle")
+# testing confusion matrix
+oqdapred <- predict(olivesqda, O.test)$class
+table(oqdapred, O.test$region)
+# misclassification rate
+mean(O.test$region != oqdapred)
+```
+
+The misclassification rate is 0.58%.
+
+f)
+```{r}
+summary(olivesqda)
+```
+
+This is the summary of our QDA model. 
+
+
